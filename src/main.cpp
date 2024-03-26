@@ -6,8 +6,10 @@
 #define LED 2
 #define FAN 4
 
-const char *ssid = "238lavigne";
-const char *password = "238lavigne"; 
+const char *ssid = "UNIFI_IDO1";
+const char *password = "41Bidules!"; 
+/*const char *ssid = "238lavigne";
+const char *password = "238lavigne"; */
 
 WebServer server(80);
 

@@ -131,7 +131,7 @@ const char Home[] PROGMEM = R"=====(
                   <span class="h1 mt-4">
                     <i>
                       <span id="air">55</span>
-                      <span> %</span>
+                      <span> ppm</span>
                     </i>
                   </span>
               </div>
