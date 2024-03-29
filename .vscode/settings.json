@@ -58,6 +58,32 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "C_Cpp.errorSquiggles": "disabled",
   "files.associations": {
-    "cstdint": "cpp"
+    "coroutine": "cpp",
+    "xmemory": "cpp",
+    "map": "cpp",
+    "array": "cpp",
+    "format": "cpp",
+    "istream": "cpp",
+    "memory": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "xlocmes": "cpp",
+    "xlocmon": "cpp",
+    "xlocnum": "cpp",
+    "xloctime": "cpp",
+    "xutility": "cpp",
+    "ostream": "cpp",
+    "chrono": "cpp",
+    "vector": "cpp",
+    "algorithm": "cpp",
+    "optional": "cpp",
+    "system_error": "cpp",
+    "*.tcc": "cpp",
+    "ratio": "cpp",
+    "functional": "cpp",
+    "regex": "cpp",
+    "string": "cpp",
+    "string_view": "cpp"
   }
 }

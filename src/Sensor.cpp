@@ -13,20 +13,19 @@ Sensor::~Sensor(){}
 
 uint8_t Sensor::getCOConcentrations()
 {
-    uint8_t readValue = analogRead(p_mqSensor);
+    uint8_t readValue = map(analogRead(p_mqSensor), 0, 1023, 0, 255);
     return readValue;
 }
 
-double Sensor::getTemperature()
+float Sensor::getTemperature(DallasTemperature sensors_ds, DeviceAddress ds_address)
 {
-    uint8_t readValue = analogRead(p_lmSensor);
-    double data = (double) readValue * (5/10.24);
-    return data;
+    sensors_ds.requestTemperaturesByAddress(ds_address);
+    float temperature = sensors_ds.getTempC(ds_address);
+    return temperature;
 }
 
 uint8_t Sensor::getLightLevel()
 {
-    uint8_t readValue = analogRead(p_ldrSensor);
-    readValue = map(readValue, 0, 1023, 0, 255);
+    uint8_t readValue = map(analogRead(p_ldrSensor), 0, 1023, 0, 255);
     return readValue;
 }

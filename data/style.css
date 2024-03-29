@@ -1,0 +1,25 @@
+.temp {
+    color: #b85100;
+  }
+
+  .air {
+    color: #635f98;
+  }
+
+  .light {
+    color: #168665;
+  }
+
+  .item {
+    border-radius: 5px;
+    text-align: center;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .logo {
+    margin: 4px;
+  }

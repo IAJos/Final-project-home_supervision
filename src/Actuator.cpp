@@ -17,13 +17,14 @@ bool Actuator::enableFan()
     for(int motorSpeed = 0 ; motorSpeed <= 255; motorSpeed+=5)
         analogWrite(p_fanActuator, motorSpeed); 
     
-    return true;
+    fanStatus = true;
+    return fanStatus;
 }
 
 void Actuator::desableFan()
 {
     pinMode(p_fanActuator, OUTPUT);
-    if (enableFan())
+    if (fanStatus)
         for(int motorSpeed = 255 ; motorSpeed >= 0; motorSpeed-=5)
         {
             analogWrite(p_fanActuator, motorSpeed);
@@ -31,14 +32,21 @@ void Actuator::desableFan()
         }    
 }
 
-void Actuator::enableSpeaker()
+void Actuator::enableSpeaker(int melody[], int noteDurations[])
 {
-    
+  for (int thisNote = 0; thisNote < 7; thisNote)
+  {
+    int noteDuration = 800/noteDurations[thisNote];
+    tone(p_speakerActuator, melody[thisNote],noteDuration);
+    int pauseBetweenNotes = noteDuration * 1.30;
+    delay(pauseBetweenNotes);
+    noTone(p_speakerActuator);
+  }
 }
 
 void Actuator::desableSpeaker()
 {
-
+    noTone(p_speakerActuator);
 }
 
 void Actuator::enableLED()
