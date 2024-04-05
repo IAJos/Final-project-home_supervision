@@ -1,12 +1,10 @@
-/*#include "Sensor.hpp"
-#include "Actuator.hpp"
 #include "BusinessLogic.hpp"
-#include "OneWire.h"
-
-#define NOTE_G3  196
-#define NOTE_C4  262
-#define NOTE_E4  330
-#define NOTE_G4  392
+#include "LedActuator.hpp"
+#include "SpeakerActuator.hpp"
+#include "FanActuator.hpp"
+#include "LightSensor.hpp"
+#include "TemperatureSensor.hpp"
+#include "GazSensor.hpp"
 
 #define MQ 34
 #define LDR 35
@@ -15,258 +13,135 @@
 #define LED 2
 #define FAN 4
 
-OneWire oneWire(DS);
-DallasTemperature sensors_ds(&oneWire);
-DeviceAddress ds_address = {0x28, 0xAF, 0x2B, 0xE3, 0x08, 0x00, 0x00, 0x0A};
+/*pinMode(SPK, OUTPUT);
+pinMode(LED, OUTPUT);
+pinMode(FAN, OUTPUT);
 
-Sensor sensor = Sensor(MQ, DS, LDR);
-Actuator actuator = Actuator(FAN, SPK, LED);
+pinMode(MQ, INPUT);
+pinMode(LDR, INPUT);
+pinMode(DS, INPUT);*/
 
-typedef struct DataMapping DataMapping;
-struct DataMapping
-{
-  uint8_t light;
-  float temperature;
-  uint8_t gaz;
-} ;
+LedActuator light = LedActuator(LED);
+SpeakerActuator speaker = SpeakerActuator(SPK);
+FanActuator fan = FanActuator(FAN);
 
-DataMapping dataMapping;
-std::vector<DataMapping> dataMappingArray;
+BusinessLogic::BusinessLogic(char* ssid, char* pwd, int port) : 
+p_ssid(ssid), p_pwd(pwd), p_port (port), p_connexion(ssid, pwd, port){}
 
-BusinessLogic::BusinessLogic(char* ssid, char* pwd, int port) : p_ssid(ssid), p_pwd(pwd), p_port (port), p_server(port){}
 BusinessLogic::~BusinessLogic(){}
 
 void BusinessLogic::checkFileInMemory()
 {    
-    if(!SPIFFS.begin())
-    {
-        Serial.println("Test SPIFFS error...");
-        return;
-    }
-
-    File root = SPIFFS.open("/");
-    File file = root.openNextFile();
-
-    while(file)
-    {
-        Serial.print("File: ");
-        Serial.println(file.name());
-        file.close();
-        file = root.openNextFile();
-    }
+  p_connexion.checkFileInMemory();
 }
 
 void BusinessLogic::serverConnexion()
 {  
-    WiFi.begin(p_ssid, p_pwd);
-	Serial.print("Tentative de connexion...");
-	
-	while(WiFi.status() != WL_CONNECTED)
-	{
-		Serial.print(".");
-		delay(100);
-	}
-	
-	Serial.println("\n");
-	Serial.println("Connexion etablie!");
-	Serial.print("Adresse IP: ");
-	Serial.println(WiFi.localIP());
+  p_connexion.serverConnexion();
 }
 
-void BusinessLogic::fileLoading()
+void BusinessLogic::fileLoading(AwsTemplateProcessor callback)
 {    
-    p_server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-    {
-        request->send(SPIFFS, "/index.html", "text/html");
-    });
+  p_connexion.p_server.on("/", HTTP_GET, [callback](AsyncWebServerRequest *request)
+  {
+    request->send(SPIFFS, "/index.html", "text/html", false, callback);
+  });
 
-    p_server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
-    {
-        request->send(SPIFFS, "/style.css", "text/css");
-    });
-
-    p_server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request)
-    {
-        request->send(SPIFFS, "/script.js", "text/javascript");
-    });
+  p_connexion.p_server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+    request->send(SPIFFS, "/style.css", "text/css");
+  });
 }
 
 void BusinessLogic::serverBegin()
 {    
-    p_server.begin();
+  p_connexion.serverBegin();
 }
 
-void BusinessLogic::onLed()
+void BusinessLogic::onLed(AwsTemplateProcessor callback)
 {
-  p_server.on("/led/on", HTTP_GET, [](AsyncWebServerRequest *request)
+  p_connexion.p_server.on("/ledon", HTTP_GET, [callback](AsyncWebServerRequest *request)
   {
-    actuator.enableLED();
-    request->redirect("/");
+    light.enableLED();
+    request->send(SPIFFS, "/index.html", "text/html", false, callback);
+    request->redirect("/index.html");
   });
 }
 
-void BusinessLogic::offLed()
+void BusinessLogic::offLed(AwsTemplateProcessor callback)
 {
-  p_server.on("/led/off", HTTP_GET, [](AsyncWebServerRequest *request)
+  p_connexion.p_server.on("/ledoff", HTTP_GET, [callback](AsyncWebServerRequest *request)
   {
-    actuator.desableLED();
-    request->redirect("/");
+    light.desableLED();
+    request->send(SPIFFS, "/index.html", "text/html", false, callback);
+    request->redirect("/index.html");
   });
 }
 
-void BusinessLogic::onFan()
+void BusinessLogic::onFan(AwsTemplateProcessor callback)
 {
-  p_server.on("/fan/on", HTTP_GET, [](AsyncWebServerRequest *request)
+  p_connexion.p_server.on("/fanon", HTTP_GET, [callback](AsyncWebServerRequest *request)
   {
-    actuator.enableFan();
-    request->redirect("/");
+    fan.enableFan();
+    request->send(SPIFFS, "/index.html", "text/html", false, callback);
+    request->redirect("/index.html");
   });
 }
 
-void BusinessLogic::offFan()
+void BusinessLogic::offFan(AwsTemplateProcessor callback)
 {
-  p_server.on("/fan/off", HTTP_GET, [](AsyncWebServerRequest *request)
+  p_connexion.p_server.on("/fanoff", HTTP_GET, [callback](AsyncWebServerRequest *request)
   {
-    actuator.desableFan();
-    request->redirect("/");
+    fan.desableFan();
+    request->send(SPIFFS, "/index.html", "text/html", false, callback);
+    request->redirect("/index.html");
   });
 }
 
-void BusinessLogic::onSpeaker()
+uint8_t BusinessLogic::getGazData()
 {
-    int melody[] = {NOTE_E4, NOTE_E4, NOTE_E4, NOTE_C4, NOTE_E4, NOTE_G4, NOTE_G3};
-    int noteDurations[] = {8, 4, 4, 8, 4, 2, 2};
-    actuator.enableSpeaker(melody, noteDurations);
+  GazSensor gaz = GazSensor(MQ);
+  return gaz.getCOConcentrations();
 }
 
-uint8_t BusinessLogic::getLight()
+uint8_t BusinessLogic::getLightLevelData()
 {
-  return sensor.getLightLevel();
+  LightSensor light_level = LightSensor(LDR);
+  return light_level.getLightLevel();
 }
 
-void BusinessLogic::displayLightLevelData()
+float BusinessLogic::getTemperatureData()
 {
-  uint8_t readDataLdr = sensor.getLightLevel();
-  dataMapping.light = readDataLdr;
-  Serial.println((String)"LDR value: " + readDataLdr);
-    
-  p_server.on("/readLight", HTTP_GET, [readDataLdr](AsyncWebServerRequest *request)
-  {
-    String value = String(readDataLdr);
-    request->send(200, "text/plain", value);
-
-    if (readDataLdr < 252)
-      actuator.enableLED();
-    else
-      actuator.desableLED();
-  });
+  TemperatureSensor temperature = TemperatureSensor(DS);
+  return temperature.getTemperature();
 }
 
-
-float BusinessLogic::getTemperature()
+void BusinessLogic::enableFan()
 {
-  sensors_ds.begin();
-  return sensor.getTemperature(sensors_ds, ds_address);
+  fan.enableFan();
 }
 
-void BusinessLogic::displayTemperatureData()
-{
-  sensors_ds.begin();
-  float temperature = sensor.getTemperature(sensors_ds, ds_address);
-  dataMapping.temperature = temperature;
-  Serial.println((String)"\tTemp value: " + temperature);
-
-  p_server.on("/readtemperature", HTTP_GET, [temperature](AsyncWebServerRequest *request)
-  {
-    if (temperature > 24)
-      actuator.enableFan();
-    else
-      actuator.desableFan();
-
-    String value = String(temperature);
-    request->send(200, "text/plain", value);
-  });
+void BusinessLogic::desableFan()
+{  
+  fan.desableFan();
 }
 
-uint8_t BusinessLogic::getGaz()
+void BusinessLogic::enableLED()
 {
-  return sensor.getCOConcentrations();
+  light.enableLED();
 }
 
-void BusinessLogic::displayGazData()
+void BusinessLogic::desableLED()
 {
-  uint8_t readDataMq7  = sensor.getCOConcentrations();
-  dataMapping.gaz = readDataMq7;
-  Serial.print((String)"\tGas value : " + readDataMq7);
-
-  p_server.on("/readGaz", HTTP_GET, [readDataMq7](AsyncWebServerRequest *request)
-  {
-    int melody[] = {NOTE_E4, NOTE_E4, NOTE_E4, NOTE_C4, NOTE_E4, NOTE_G4, NOTE_G3};
-    int noteDurations[] = {8, 4, 4, 8, 4, 2, 2};
-
-    if (readDataMq7 > 220)
-      actuator.enableSpeaker(melody, noteDurations);
-    else
-      actuator.desableSpeaker();
-
-    String value = String(readDataMq7);
-    request->send(200, "text/plain", value);
-  });
+  light.desableLED();
 }
 
-void BusinessLogic::displayData()
+void BusinessLogic::enableSpeaker()
 {
-  dataMappingArray.push_back(dataMapping);
-
-  if(dataMappingArray.size() > 8 && !dataMappingArray.empty())
-    dataMappingArray.erase(dataMappingArray.begin());
-
-  JsonDocument jsonData;
-  JsonArray jsonArray = jsonData.to<JsonArray>();
-  String output;
-
-  for (int i = 0; i < dataMappingArray.size(); i++)
-  {
-    JsonObject obj = jsonArray.createNestedObject();
-    obj["light"] = dataMappingArray[i].light;
-    obj["temperature"] = dataMappingArray[i].temperature;
-    obj["gaz"] = dataMappingArray[i].gaz;
-  }
-
-
-  serializeJson(jsonData, output);
-  Serial.println(output);
-
-  p_server.on("/", HTTP_GET, [output](AsyncWebServerRequest *request)
-  {
-    request->send(200, "text/plain", output);
-  });
+  speaker.enableSpeaker();
 }
 
-void BusinessLogic::checkCondition()
+void BusinessLogic::desableSpeaker()
 {
-  sensors_ds.begin();
-
-  float meanLightLevel;
-  float meanTemperature;
-  float meanGaz;
-
-  int lightLevelSum = 0;
-  int temperatureSum = 0;
-  int gazSum = 0;
-
-  for (int i = 0; i < 10; i++)
-  {
-    Serial.println((String)"light: " + i + "= " + sensor.getLightLevel() + " temp: " + i + "= " + sensor.getTemperature(sensors_ds, ds_address) + " gaz: " + i + "= " + sensor.getCOConcentrations());
-    lightLevelSum  += sensor.getLightLevel();
-    temperatureSum += sensor.getTemperature(sensors_ds, ds_address);
-    gazSum += sensor.getCOConcentrations();
-  }
-
-  meanLightLevel = lightLevelSum/10.0;
-  meanTemperature = temperatureSum/10.0;
-  meanGaz = gazSum/10.0;
-  Serial.println((String)"mean light: " + meanLightLevel + " mean temp: " + meanTemperature + " mean gaz: " + meanGaz);
+  speaker.desableSpeaker();
 }
-
-*/
