@@ -51,6 +51,11 @@ void BusinessLogic::fileLoading(AwsTemplateProcessor callback)
   {
     request->send(SPIFFS, "/style.css", "text/css");
   });
+
+  p_connexion.p_server.on("/loader.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  {
+      request->send(SPIFFS, "/loader.js", "text/javascript");
+  });
 }
 
 void BusinessLogic::serverBegin()

@@ -83,7 +83,6 @@ void loop() {
     dataMappingArray.erase(dataMappingArray.begin());
 
   chartData(dataMappingArray);
-  checkData(dataMappingArray);
   Serial.println("\n");
   
   delay(1000);
